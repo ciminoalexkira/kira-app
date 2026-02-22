@@ -1,0 +1,14 @@
+{
+  "name": "kira-app",
+  "version": "1.0.0",
+  "description": "Kira — Assistente vocale con Rich UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-edge-tts": "^1.0.4"
+  }
+}
