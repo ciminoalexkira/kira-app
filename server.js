@@ -7,7 +7,11 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: 0, // Disabilita cache
+  etag: false, // Disabilita ETag
+  lastModified: false, // Disabilita last-modified
+}));
 
 app.post('/api/chat', async (req, res) => {
   const { message, voiceEnabled = false } = req.body;
