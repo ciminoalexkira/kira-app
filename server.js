@@ -1,16 +1,15 @@
 const express = require('express');
 const path = require('path');
 const { exec } = require('child_process');
-const edgeTTS = require('node-edge-tts');
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: 0, // Disabilita cache
-  etag: false, // Disabilita ETag
-  lastModified: false, // Disabilita last-modified
+  maxAge: 0,
+  etag: false,
+  lastModified: false
 }));
 
 app.post('/api/chat', async (req, res) => {
@@ -27,47 +26,6 @@ app.post('/api/chat', async (req, res) => {
     res.json({ response: stdout.trim(), voiceEnabled });
   });
 });
-
-// TTS endpoint - disabilitato temporaneamente (bug node-edge-tts)
-// TODO: fixare l'import del modulo edgeTTS
-/* 
-app.post('/api/tts', async (req, res) => {
-  const { text } = req.body;
-  if (!text) return res.status(400).json({ error: 'Text required' });
-
-  try {
-    console.log('TTS request:', text.substring(0, 50) + '...');
-    
-    // Edge TTS - voce italiana
-    const audio = await edgeTTS({
-      text: text,
-      voice: 'it-IT-ElsaNeural',
-      lang: 'it-IT',
-      outputFormat: 'mp3',
-      rate: '+0%'
-    });
-    
-    // Salva temporaneamente
-    const filename = `tts-${Date.now()}.mp3`;
-    const fs = require('fs');
-    const filepath = path.join(__dirname, 'public', 'tts', filename);
-    
-    if (!require('fs').existsSync(path.join(__dirname, 'public', 'tts'))) {
-      fs.mkdirSync(path.join(__dirname, 'public', 'tts'));
-    }
-    
-    fs.writeFileSync(filepath, audio);
-    
-    res.json({ 
-      audioUrl: `/tts/${filename}`,
-      voice: 'it-IT-ElsaNeural'
-    });
-  } catch (error) {
-    console.error('TTS Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-*/
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Kira App running at http://0.0.0.0:${PORT}`);
