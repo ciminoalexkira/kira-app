@@ -9,6 +9,24 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.post('/api/chat', async (req, res) => {
+  const { message, voiceEnabled = false } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message required' });
+
+  console.log(`User: ${message}${voiceEnabled ? ' (voice)' : ''}`);
+  
+  exec(`openclaw agent -m "${message}" --session-id 121141560`, (error, stdout, stderr) => {
+    if (error) {
+      console.error('Error:', stderr);
+      return res.status(500).json({ error: stderr });
+    }
+    res.json({ response: stdout.trim(), voiceEnabled });
+  });
+});
+
+// TTS endpoint - disabilitato temporaneamente (bug node-edge-tts)
+// TODO: fixare l'import del modulo edgeTTS
+/* 
 app.post('/api/tts', async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'Text required' });
@@ -45,22 +63,8 @@ app.post('/api/tts', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+*/
 
-app.post('/api/chat', async (req, res) => {
-  const { message, voiceEnabled = false } = req.body;
-  if (!message) return res.status(400).json({ error: 'Message required' });
-
-  console.log(`User: ${message}${voiceEnabled ? ' (voice)' : ''}`);
-  
-  exec(`openclaw agent "${message}"`, (error, stdout, stderr) => {
-    if (error) {
-      console.error('Error:', stderr);
-      return res.status(500).json({ error: stderr });
-    }
-    res.json({ response: stdout.trim(), voiceEnabled });
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Kira App running at http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Kira App running at http://0.0.0.0:${PORT}`);
 });
