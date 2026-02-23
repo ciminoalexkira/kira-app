@@ -1,18 +1,17 @@
 const express = require('express');
 const path = require('path');
-const { exec } = require('child_process');
 const sqlite3 = require('sqlite3').verbose();
-const WebSocket = require('ws');
 
 const app = express();
 const PORT = 3000;
 
-// Google Generative AI - diretta integrazione
+// Google Generative AI
 const API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyCerpCHBZI-89HCMd0S50uPHe47pO3cEsU';
 const MODEL_LITE = 'gemini-2.5-flash-lite';
 const MODEL_PRO = 'gemini-2.5-pro';
-const MODEL_ULTRA = 'gemini-2.5-ultra'; // Assumendo che questo sia un modello valido
+const MODEL_ULTRA = 'gemini-2.5-ultra';
 
+const { GoogleGenerativeAI } = require('@google-cloud/ai');
 const ai = new GoogleGenerativeAI(API_KEY);
 let modelLite, modelPro, modelUltra;
 
@@ -21,8 +20,7 @@ try {
   modelPro = ai.getGenerativeModel({ model: MODEL_PRO });
   modelUltra = ai.getGenerativeModel({ model: MODEL_ULTRA });
 } catch (error) {
-  console.error('Error initializing Gemini models:', error);
-  // Gestisci l'errore, magari fallisci il bootstrap o usa un fallback
+  console.error('Gemini initialization error:', error);
 }
 
 // SQLite Database
@@ -78,6 +76,7 @@ app.use((req, res, next) => {
   const userAgent = req.headers['user-agent'] || '';
   const ip = req.ip || 'unknown';
   req.deviceId = userAgent + '-' + ip;
+  // Use a provided session ID, or generate one if not available
   req.sessionId = req.headers['x-session-id'] || generateSessionId();
   next();
 });
@@ -247,7 +246,7 @@ app.post('/api/chat', async (req, res) => {
       // Inietta info sul modello nella risposta
       const modelInfo = `\n\n[⚡ Modello: ${reason} (${modelName})]`;
       
-      res.json({ 
+      res.json({
         response: aiResponse + modelInfo,
         model: modelName,
         modelDisplayName: intent.modelName || 'Gemini',
@@ -259,7 +258,7 @@ app.post('/api/chat', async (req, res) => {
       res.json({ response: aiResponse, model: modelName, modelDisplayName: intent.modelName || 'Gemini', voiceEnabled });
     }
   } catch (aiError) {
-    console.eprror('Gemini API error:', aiError);
+    console.error('Gemini API error:', aiError);
     res.status(500).json({ error: 'Gemini API error: ' + aiError.message });
   }
 });
@@ -278,7 +277,7 @@ app.use((req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Kira App running at http://0.0.0.0:${PORT}`);
   console.log(`SQLite database: ${dbPath}`);
-  console.log('Gemini API keys configured.');
+  console.log('Gemini API keys configured correctly.');
 });
 
 function isStructuredContent(text) {
