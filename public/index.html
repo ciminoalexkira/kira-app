@@ -15,7 +15,7 @@
   <style>
     body { background: #000; color: #fff; -webkit-tap-highlight-color: transparent; }
     ::-webkit-scrollbar { display: none; }
-    
+
     /* Animazioni */
     @keyframes pulse-fast {
       0%, 100% { opacity: 1; }
@@ -25,13 +25,13 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    
+
     /* iOS-style colors */
     .ios-blue { background: #0A84FF; }
     .ios-card { background: #1C1C1E; }
     .ios-gray { background: #1C1C1E; }
     .ios-gray-light { background: #2A2A2A; }
-    
+
     /* Glass morphism */
     .glass {
       background: rgba(28, 28, 30, 0.6);
@@ -39,7 +39,7 @@
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
+
     /* Typing indicator */
     .typing {
       animation: pulse-fast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -77,9 +77,22 @@
       const [input, setInput] = useState('');
       const [loading, setLoading] = useState(false);
       const [isRecording, setIsRecording] = useState(false);
+      const [sessionId, setSessionId] = useState(null);
       const recognitionRef = useRef(null);
       const messagesEndRef = useRef(null);
       
+      // Genera sessionId locale
+      useEffect(() => {
+        if (!sessionId) {
+          const storedId = localStorage.getItem('kira_session_id');
+          const newId = storedId || 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          setSessionId(newId);
+          localStorage.setItem('kira_session_id', newId);
+        }
+      }, [sessionId]);
+      
+      // Carica cronologia all'avvio
+
       // Auto-scroll to latest message
       useEffect(() => {
         if (messagesEndRef.current) {
@@ -131,22 +144,19 @@
         setInput('');
 
         try {
-          const res = await fetch('/api/chat', {
+          // Use WebSocket endpoint instead of CLI
+          const res = await fetch('/api/session/message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text, voiceEnabled: !userMsg.structured })
+            body: JSON.stringify({ sessionId: sessionId, message: text })
           });
           const data = await res.json();
-          
-          const aiMsg = { 
-            type: 'ai', 
-            text: data.response,
-            structured: userMsg.structured,
-            timestamp: new Date().toISOString()
-          };
-          
-          setMessages(prev => [...prev, aiMsg]);
+
+          // AI response comes through WebSocket (saved to DB server-side)
+          // But we can show user message immediately
+          setMessages(prev => [...prev, userMsg]);
         } catch (e) {
+          console.error('Send error:', e);
           setMessages(prev => [...prev, { type: 'error', text: e.message }]);
         } finally {
           setLoading(false);
@@ -193,11 +203,11 @@
                 <p className="text-xs text-gray-400">Scrivi o premi 🎙️ per iniziare</p>
               </div>
             )}
-            
+
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.type === 'user' ? 'justify-end' : 'justify-start'} animate-slideUp`}>
                 <div className={`max-w-[85%] rounded-2xl p-4 ${
-                  m.type === 'user' ? 'ios-blue' : 
+                  m.type === 'user' ? 'ios-blue' :
                   m.type === 'error' ? 'bg-red-900/50' : 'ios-card'
                 } backdrop-blur-sm`}>
                   {m.type === 'ai' && m.structured && (
@@ -210,7 +220,7 @@
                 </div>
               </div>
             ))}
-            
+
             {loading && (
               <div className="flex justify-start">
                 <div className="ios-card rounded-2xl p-4">
